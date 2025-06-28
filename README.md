@@ -46,7 +46,7 @@ BioViT3R-Beta is a comprehensive plant analysis platform that combines cutting-e
 ### Option 1: From Source
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/BioViT3R-Beta.git
+git clone https://github.com/amasuba/BioViT3R-Beta.git
 cd BioViT3R-Beta
 
 # Create virtual environment
@@ -331,9 +331,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Project Homepage**: https://github.com/yourusername/BioViT3R-Beta
-- **Issues**: https://github.com/yourusername/BioViT3R-Beta/issues
-- **Email**: contact@biovitr.com
+- **Project Homepage**: https://github.com/amasuba/BioViT3R-Beta
+- **Issues**: https://github.com/amasuba/BioViT3R-Beta/issues
+- **Email**: amasuba@acm.org
 
 ---
 
