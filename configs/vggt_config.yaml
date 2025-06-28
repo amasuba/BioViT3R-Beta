@@ -1,0 +1,278 @@
+# configs/vggt_config.yaml
+
+# VGGT 3D Reconstruction Configuration
+# Specialized settings for VGGT model integration
+
+vggt:
+  # Model Information
+  model_name: "VGGT"
+  version: "1.0"
+  description: "View Guided Gaussian Transformer for 3D Reconstruction"
+  paper_url: "https://arxiv.org/abs/2312.XXXXX"
+  
+  # Model Files and Paths
+  model_files:
+    checkpoint: "models/vggt/vggt_checkpoint.pth"
+    config: "models/vggt/model_config.json"
+    vocabulary: "models/vggt/vocab.json"
+    tokenizer: "models/vggt/tokenizer.json"
+    
+  # Download Configuration
+  download:
+    enabled: true
+    base_url: "https://github.com/VGGT/releases/download/v1.0/"
+    files:
+      - name: "vggt_checkpoint.pth"
+        size_mb: 1250
+        sha256: "a1b2c3d4e5f6..."
+      - name: "model_config.json"
+        size_mb: 0.1
+        sha256: "f6e5d4c3b2a1..."
+    cache_dir: "models/vggt"
+    verify_checksums: true
+    
+  # Hardware Configuration
+  hardware:
+    device: "auto"  # auto, cuda, cpu, mps
+    gpu_memory_fraction: 0.8
+    precision: "fp16"  # fp32, fp16, bf16
+    compile_model: false  # PyTorch 2.0 compilation
+    enable_optimizations: true
+    
+  # Input Configuration
+  input:
+    # Image preprocessing
+    image_size: [480, 480]  # [height, width]
+    channels: 3
+    normalize: true
+    mean: [0.485, 0.456, 0.406]  # ImageNet means
+    std: [0.229, 0.224, 0.225]   # ImageNet stds
+    
+    # Background handling
+    background_removal: false
+    background_threshold: 0.1
+    background_color: [255, 255, 255]  # White background
+    
+    # Image enhancement
+    enhance_contrast: false
+    gamma_correction: 1.0
+    histogram_equalization: false
+    
+  # Model Architecture
+  architecture:
+    # Encoder settings
+    encoder:
+      backbone: "dino_vits8"  # dino_vits8, dino_vitb8, clip_vitb32
+      feature_dim: 768
+      num_layers: 12
+      num_heads: 12
+      mlp_ratio: 4.0
+      dropout: 0.1
+      
+    # Transformer settings
+    transformer:
+      num_layers: 6
+      num_heads: 8
+      hidden_dim: 512
+      intermediate_size: 2048
+      max_sequence_length: 1024
+      
+    # Decoder settings
+    decoder:
+      output_dim: 3  # XYZ coordinates
+      num_points: 8192  # Initial point cloud size
+      gaussian_scale: 0.01
+      density_threshold: 0.1
+      
+  # Processing Parameters
+  processing:
+    # Point cloud generation
+    point_cloud:
+      num_initial_points: 8192
+      max_points: 100000
+      min_points: 1000
+      density_threshold: 0.05
+      noise_threshold: 0.02
+      
+    # Gaussian splatting
+    gaussian_splatting:
+      enabled: true
+      num_gaussians: 50000
+      opacity_threshold: 0.1
+      scale_threshold: 0.001
+      color_threshold: 0.05
+      
+    # Mesh generation
+    mesh_generation:
+      enabled: true
+      method: "poisson"  # poisson, marching_cubes, delaunay
+      poisson_depth: 8
+      poisson_width: 0
+      poisson_scale: 1.1
+      remove_outliers: true
+      outlier_neighbors: 20
+      outlier_std_ratio: 2.0
+      
+    # Surface reconstruction
+    surface_reconstruction:
+      smoothing_iterations: 5
+      smoothing_factor: 0.5
+      decimation_ratio: 0.1
+      edge_split_angle: 30.0  # degrees
+      
+  # Output Configuration
+  output:
+    # Point cloud formats
+    point_cloud_formats: ["ply", "pcd", "xyz", "las"]
+    default_point_format: "ply"
+    
+    # Mesh formats
+    mesh_formats: ["ply", "obj", "stl", "off"]
+    default_mesh_format: "ply"
+    
+    # Coordinate system
+    coordinate_system: "right_handed"  # right_handed, left_handed
+    up_axis: "y"  # x, y, z
+    scale_factor: 1.0
+    origin_offset: [0.0, 0.0, 0.0]
+    
+    # File naming
+    filename_template: "{timestamp}_{input_name}_3d.{format}"
+    include_metadata: true
+    compression: true
+    
+  # Quality Settings
+  quality:
+    # Reconstruction quality levels
+    quality_preset: "high"  # low, medium, high, ultra
+    
+    quality_presets:
+      low:
+        num_points: 2048
+        max_points: 10000
+        poisson_depth: 6
+        smoothing_iterations: 2
+      medium:
+        num_points: 4096
+        max_points: 50000
+        poisson_depth: 7
+        smoothing_iterations: 3
+      high:
+        num_points: 8192
+        max_points: 100000
+        poisson_depth: 8
+        smoothing_iterations: 5
+      ultra:
+        num_points: 16384
+        max_points: 200000
+        poisson_depth: 9
+        smoothing_iterations: 8
+        
+    # Validation thresholds
+    validation:
+      min_points_threshold: 100
+      max_noise_ratio: 0.3
+      geometric_consistency: 0.8
+      texture_quality: 0.7
+      
+  # Performance Configuration
+  performance:
+    # Batch processing
+    batch_size: 1  # VGGT processes single images
+    num_workers: 4
+    prefetch_factor: 2
+    
+    # Memory management
+    max_memory_usage: 0.8  # 80% of available GPU memory
+    clear_cache_after_batch: true
+    gradient_checkpointing: false
+    
+    # Optimization
+    use_amp: true  # Automatic Mixed Precision
+    use_channels_last: false
+    use_torch_compile: false
+    
+  # Debugging and Visualization
+  debug:
+    # Debug outputs
+    save_intermediate_results: false
+    intermediate_output_dir: "debug/vggt"
+    
+    # Visualization
+    enable_visualization: true
+    save_debug_images: false
+    save_attention_maps: false
+    
+    # Logging
+    log_processing_steps: true
+    log_memory_usage: true
+    log_timing_info: true
+    
+  # Error Handling
+  error_handling:
+    # Fallback strategies
+    enable_fallback: true
+    fallback_quality: "low"
+    max_retry_attempts: 3
+    
+    # Error thresholds
+    max_processing_time: 300  # seconds
+    memory_limit_gb: 12
+    
+    # Recovery options
+    auto_reduce_quality: true
+    auto_cleanup_cache: true
+    
+# Plant-Specific VGGT Settings
+plant_analysis:
+  # Plant type optimizations
+  plant_types:
+    apple_tree:
+      preferred_viewpoints: ["front", "side", "top"]
+      expected_height_range: [1.0, 5.0]  # meters
+      leaf_density_factor: 1.2
+      branch_structure_weight: 0.8
+      
+    grapevine:
+      preferred_viewpoints: ["front", "side"]
+      expected_height_range: [0.5, 3.0]
+      leaf_density_factor: 1.5
+      branch_structure_weight: 0.6
+      
+    citrus:
+      preferred_viewpoints: ["front", "side", "top"]
+      expected_height_range: [1.5, 4.0]
+      leaf_density_factor: 1.1
+      branch_structure_weight: 0.9
+      
+  # Seasonal adjustments
+  seasonal_settings:
+    spring:
+      leaf_density_multiplier: 0.7
+      branch_visibility: 0.9
+      
+    summer:
+      leaf_density_multiplier: 1.2
+      branch_visibility: 0.4
+      
+    autumn:
+      leaf_density_multiplier: 0.8
+      branch_visibility: 0.7
+      
+    winter:
+      leaf_density_multiplier: 0.3
+      branch_visibility: 1.0
+      
+  # Growth stage considerations
+  growth_stage_adjustments:
+    flowering:
+      flower_detection_weight: 1.5
+      detail_enhancement: true
+      
+    fruiting:
+      fruit_region_focus: true
+      surface_quality_boost: 1.2
+      
+    dormant:
+      structure_emphasis: true
+      detail_reduction: 0.8

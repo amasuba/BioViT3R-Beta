@@ -1,0 +1,317 @@
+# configs/datasets_config.yaml
+
+# Dataset Configuration for BioViT3R-Beta
+# ACFR Orchard Fruit Dataset and MinneApple Dataset settings
+
+datasets:
+  # ACFR Orchard Fruit Dataset
+  acfr:
+    name: "ACFR Orchard Fruit Dataset"
+    description: "Comprehensive orchard fruit detection dataset from Australian Centre for Field Robotics"
+    version: "2.0"
+    url: "https://data.acfr.usyd.edu.au/fruit_detection"
+    
+    # Dataset paths
+    paths:
+      root_dir: "data/acfr_orchard"
+      images_dir: "data/acfr_orchard/images"
+      annotations_dir: "data/acfr_orchard/annotations"
+      splits_dir: "data/acfr_orchard/splits"
+      
+    # Download configuration
+    download:
+      enabled: true
+      auto_extract: true
+      verify_integrity: true
+      total_size_gb: 42.3
+      files:
+        - name: "acfr_images.tar.gz"
+          url: "https://data.acfr.usyd.edu.au/downloads/acfr_images.tar.gz"
+          size_gb: 38.2
+          checksum: "sha256:abcdef123456..."
+        - name: "acfr_annotations.zip"
+          url: "https://data.acfr.usyd.edu.au/downloads/acfr_annotations.zip"
+          size_gb: 4.1
+          checksum: "sha256:fedcba654321..."
+          
+    # Dataset statistics
+    statistics:
+      total_images: 35684
+      total_annotations: 124567
+      fruit_types: ["apple", "orange", "mango", "almond"]
+      environments: ["orchard", "greenhouse", "field"]
+      lighting_conditions: ["natural", "artificial", "mixed"]
+      seasons: ["spring", "summer", "autumn", "winter"]
+      
+    # Image specifications
+    images:
+      formats: [".jpg", ".png"]
+      resolution_range: [[640, 480], [4032, 3024]]
+      color_space: "RGB"
+      bit_depth: 8
+      compression: "JPEG"
+      
+    # Annotation format
+    annotations:
+      format: "COCO"  # COCO JSON format
+      categories:
+        - id: 1
+          name: "apple"
+          supercategory: "fruit"
+        - id: 2
+          name: "orange"
+          supercategory: "fruit"
+        - id: 3
+          name: "mango"
+          supercategory: "fruit"
+        - id: 4
+          name: "almond"
+          supercategory: "nut"
+          
+      annotation_types: ["bbox", "segmentation", "keypoint"]
+      bbox_format: "xywh"  # x, y, width, height
+      
+    # Data splits
+    splits:
+      train:
+        ratio: 0.7
+        images: 24979
+        annotations: 87197
+      validation:
+        ratio: 0.15
+        images: 5353
+        annotations: 18685
+      test:
+        ratio: 0.15
+        images: 5352
+        annotations: 18685
+        
+    # Quality filters
+    quality_filters:
+      min_image_size: [320, 240]
+      max_image_size: [4096, 4096]
+      min_objects_per_image: 1
+      max_objects_per_image: 50
+      min_object_area: 100  # pixels
+      blur_threshold: 0.8
+      
+  # MinneApple Dataset
+  minneapple:
+    name: "MinneApple Dataset"
+    description: "Large-scale apple detection dataset from University of Minnesota"
+    version: "1.0"
+    url: "https://github.com/nicolaihaeni/MinneApple"
+    paper_url: "https://arxiv.org/abs/1909.06441"
+    
+    # Dataset paths
+    paths:
+      root_dir: "data/minneapple"
+      images_dir: "data/minneapple/detection/train"
+      test_images_dir: "data/minneapple/detection/test"
+      annotations_file: "data/minneapple/detection/train/_annotations.coco.json"
+      
+    # Download configuration
+    download:
+      enabled: true
+      source: "roboflow"  # roboflow, github, direct
+      roboflow_config:
+        workspace: "university-of-minnesota"
+        project: "minneapple"
+        version: 3
+        api_key: "${ROBOFLOW_API_KEY}"
+        format: "coco"
+        
+    # Dataset statistics
+    statistics:
+      total_images: 670
+      training_images: 500
+      validation_images: 85
+      test_images: 85
+      total_annotations: 41204
+      average_apples_per_image: 61.5
+      
+    # Image specifications
+    images:
+      formats: [".jpg"]
+      resolution: [416, 416]  # Standardized resolution
+      color_space: "RGB"
+      bit_depth: 8
+      
+    # Annotation format
+    annotations:
+      format: "COCO"
+      categories:
+        - id: 0
+          name: "apple"
+          supercategory: "fruit"
+          
+      annotation_types: ["bbox"]
+      bbox_format: "xywh"
+      
+    # Orchard environments
+    environments:
+      orchards: ["Honeycrisp", "Red Delicious", "Gala"]
+      conditions: ["varying_lighting", "occlusion", "clustering"]
+      perspectives: ["ground_level", "elevated", "close_up"]
+      
+    # Quality characteristics
+    quality:
+      high_resolution: true
+      manual_annotation: true
+      expert_validation: true
+      inter_annotator_agreement: 0.92
+      
+# Combined Dataset Configuration
+combined_datasets:
+  # Multi-dataset training
+  multi_dataset_training:
+    enabled: true
+    datasets: ["acfr", "minneapple"]
+    sampling_strategy: "balanced"  # balanced, weighted, sequential
+    
+    # Dataset weights for balanced sampling
+    weights:
+      acfr: 0.7
+      minneapple: 0.3
+      
+  # Class mapping and harmonization
+  class_harmonization:
+    enabled: true
+    target_classes: ["apple", "fruit", "citrus", "stone_fruit"]
+    
+    mapping:
+      acfr_apple: "apple"
+      acfr_orange: "citrus"
+      acfr_mango: "stone_fruit"
+      minneapple_apple: "apple"
+      
+  # Cross-dataset validation
+  cross_validation:
+    enabled: true
+    train_on: "acfr"
+    validate_on: "minneapple"
+    metrics: ["mAP", "precision", "recall", "F1"]
+
+# Data Loading Configuration
+data_loading:
+  # DataLoader settings
+  batch_size: 16
+  num_workers: 8
+  pin_memory: true
+  drop_last: true
+  shuffle: true
+  
+  # Caching
+  cache_data: true
+  cache_dir: "data/cache"
+  cache_size_gb: 10
+  
+  # Preprocessing pipeline
+  preprocessing:
+    resize_method: "pad_to_square"
+    target_size: [512, 512]
+    normalize: true
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+    
+# Data Augmentation
+augmentation:
+  # Training augmentations
+  training:
+    enabled: true
+    probability: 0.8
+    
+    transforms:
+      horizontal_flip:
+        enabled: true
+        probability: 0.5
+        
+      rotation:
+        enabled: true
+        probability: 0.3
+        angle_range: [-15, 15]
+        
+      color_jitter:
+        enabled: true
+        probability: 0.4
+        brightness: 0.2
+        contrast: 0.2
+        saturation: 0.2
+        hue: 0.1
+        
+      gaussian_blur:
+        enabled: true
+        probability: 0.2
+        kernel_size: [3, 7]
+        
+      random_crop:
+        enabled: true
+        probability: 0.3
+        crop_ratio: [0.8, 1.0]
+        
+      cutout:
+        enabled: true
+        probability: 0.2
+        num_holes: 3
+        max_h_size: 32
+        max_w_size: 32
+        
+  # Validation augmentations (minimal)
+  validation:
+    enabled: true
+    transforms:
+      resize:
+        enabled: true
+        size: [512, 512]
+      normalize:
+        enabled: true
+        
+  # Test-time augmentation
+  test_time_augmentation:
+    enabled: false
+    num_augmentations: 5
+    ensemble_method: "average"  # average, max, voting
+
+# Dataset Validation
+validation:
+  # Integrity checks
+  integrity_checks:
+    enabled: true
+    check_file_existence: true
+    verify_image_format: true
+    validate_annotations: true
+    check_class_consistency: true
+    
+  # Quality metrics
+  quality_metrics:
+    enabled: true
+    compute_statistics: true
+    detect_duplicates: true
+    identify_outliers: true
+    
+  # Annotation validation
+  annotation_validation:
+    bbox_validity: true
+    class_consistency: true
+    file_path_validation: true
+    coordinate_bounds: true
+    
+# Performance Optimization
+optimization:
+  # Memory optimization
+  memory:
+    lazy_loading: true
+    progressive_loading: true
+    memory_mapping: false
+    
+  # I/O optimization
+  io:
+    prefetch_factor: 2
+    persistent_workers: true
+    use_shared_memory: false
+    
+  # Parallel processing
+  parallel:
+    multiprocessing: true
+    num_processes: 4
+    process_timeout: 300

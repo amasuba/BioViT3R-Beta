@@ -1,0 +1,426 @@
+# configs/deployment_config.yaml
+
+# Deployment Configuration for BioViT3R-Beta
+# Production deployment settings for various environments
+
+deployment:
+  # Environment configurations
+  environments:
+    development:
+      debug: true
+      log_level: "DEBUG"
+      auto_reload: true
+      mock_services: true
+      
+    staging:
+      debug: false
+      log_level: "INFO"
+      auto_reload: false
+      mock_services: false
+      
+    production:
+      debug: false
+      log_level: "WARNING"
+      auto_reload: false
+      mock_services: false
+      security_hardened: true
+
+# Docker Configuration
+docker:
+  # Base images
+  base_images:
+    development: "nvidia/cuda:11.8-devel-ubuntu20.04"
+    production: "nvidia/cuda:11.8-runtime-ubuntu20.04"
+    
+  # Container settings
+  container:
+    name: "biovit3r-beta"
+    restart_policy: "unless-stopped"
+    memory_limit: "16g"
+    cpu_limit: "8"
+    gpu_access: true
+    
+  # Port mappings
+  ports:
+    gradio: 7860
+    metrics: 9090
+    health: 8080
+    
+  # Volume mounts
+  volumes:
+    models: "/app/models"
+    data: "/app/data"
+    logs: "/app/logs"
+    cache: "/app/cache"
+    
+  # Environment variables
+  environment:
+    CUDA_VISIBLE_DEVICES: "0"
+    PYTHONUNBUFFERED: "1"
+    GRADIO_SERVER_NAME: "0.0.0.0"
+    GRADIO_SERVER_PORT: "7860"
+
+# Kubernetes Configuration
+kubernetes:
+  # Deployment settings
+  deployment:
+    name: "biovit3r-beta"
+    namespace: "default"
+    replicas: 2
+    
+    # Resource requirements
+    resources:
+      requests:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "8"
+        memory: "16Gi"
+        nvidia.com/gpu: "1"
+        
+    # Node selection
+    node_selector:
+      gpu: "nvidia"
+      node-type: "gpu-worker"
+      
+    # Tolerations for GPU nodes
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+        
+  # Service configuration
+  service:
+    name: "biovit3r-beta-service"
+    type: "LoadBalancer"
+    ports:
+      - name: "gradio"
+        port: 80
+        target_port: 7860
+      - name: "metrics"
+        port: 9090
+        target_port: 9090
+        
+  # Ingress configuration
+  ingress:
+    enabled: true
+    name: "biovit3r-beta-ingress"
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      
+    hosts:
+      - host: "biovit3r.example.com"
+        paths:
+          - path: "/"
+            path_type: "Prefix"
+            
+    tls:
+      - secretName: "biovit3r-tls"
+        hosts:
+          - "biovit3r.example.com"
+
+# Cloud Provider Configurations
+cloud_providers:
+  # Amazon Web Services
+  aws:
+    # EC2 instance configuration
+    ec2:
+      instance_type: "g4dn.xlarge"  # GPU instance
+      ami_id: "ami-0c02fb55956c7d316"  # Deep Learning AMI
+      key_pair: "biovit3r-keypair"
+      security_groups: ["biovit3r-sg"]
+      subnet_id: "subnet-12345678"
+      
+    # ECS configuration
+    ecs:
+      cluster_name: "biovit3r-cluster"
+      service_name: "biovit3r-service"
+      task_definition: "biovit3r-task"
+      desired_count: 2
+      launch_type: "EC2"
+      
+    # S3 storage
+    s3:
+      bucket_name: "biovit3r-data"
+      region: "us-west-2"
+      storage_class: "STANDARD_IA"
+      lifecycle_policy: true
+      
+  # Google Cloud Platform
+  gcp:
+    # Compute Engine
+    compute_engine:
+      machine_type: "n1-standard-4"
+      gpu_type: "nvidia-tesla-t4"
+      gpu_count: 1
+      zone: "us-central1-a"
+      image_family: "pytorch-latest-gpu"
+      
+    # Google Kubernetes Engine
+    gke:
+      cluster_name: "biovit3r-cluster"
+      zone: "us-central1-a"
+      node_count: 2
+      node_pool_config:
+        machine_type: "n1-standard-4"
+        accelerator:
+          type: "nvidia-tesla-t4"
+          count: 1
+          
+    # Cloud Storage
+    cloud_storage:
+      bucket_name: "biovit3r-storage"
+      location: "US"
+      storage_class: "STANDARD"
+      
+  # Microsoft Azure
+  azure:
+    # Virtual Machines
+    vm:
+      size: "Standard_NC6s_v3"  # GPU VM
+      image:
+        publisher: "microsoft-dsvm"
+        offer: "ubuntu-1804"
+        sku: "1804-gen2"
+        version: "latest"
+        
+    # Azure Container Instances
+    aci:
+      resource_group: "biovit3r-rg"
+      container_group: "biovit3r-group"
+      cpu: 4
+      memory: 16
+      gpu:
+        count: 1
+        sku: "V100"
+        
+    # Blob Storage
+    blob_storage:
+      account_name: "biovit3rstorage"
+      container_name: "data"
+      tier: "Hot"
+
+# Load Balancing and Scaling
+load_balancing:
+  # Horizontal Pod Autoscaler (HPA)
+  hpa:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+  # Vertical Pod Autoscaler (VPA)
+  vpa:
+    enabled: false
+    update_mode: "Auto"
+    
+  # Load balancer configuration
+  load_balancer:
+    type: "nginx"
+    algorithm: "round_robin"
+    health_check:
+      enabled: true
+      path: "/health"
+      interval: 30
+      timeout: 5
+      
+# Monitoring and Observability
+monitoring:
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    scrape_interval: 15
+    retention: "30d"
+    
+    # Metrics endpoints
+    endpoints:
+      - name: "biovit3r-metrics"
+        path: "/metrics"
+        port: 9090
+        
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      - name: "biovit3r-overview"
+        file: "dashboards/overview.json"
+      - name: "biovit3r-models"
+        file: "dashboards/models.json"
+      - name: "biovit3r-performance"
+        file: "dashboards/performance.json"
+        
+  # Logging
+  logging:
+    # Centralized logging
+    centralized: true
+    
+    # ELK Stack configuration
+    elasticsearch:
+      host: "elasticsearch.logging.svc.cluster.local"
+      port: 9200
+      index: "biovit3r-logs"
+      
+    logstash:
+      host: "logstash.logging.svc.cluster.local"
+      port: 5044
+      
+    kibana:
+      host: "kibana.logging.svc.cluster.local"
+      port: 5601
+      
+  # Alerting
+  alerting:
+    enabled: true
+    
+    # Alert rules
+    rules:
+      - name: "high_cpu_usage"
+        condition: "cpu_usage > 90"
+        duration: "5m"
+        severity: "warning"
+        
+      - name: "high_memory_usage"
+        condition: "memory_usage > 95"
+        duration: "3m"
+        severity: "critical"
+        
+      - name: "gpu_utilization_low"
+        condition: "gpu_usage < 10"
+        duration: "10m"
+        severity: "info"
+        
+    # Notification channels
+    notifications:
+      - type: "slack"
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#alerts"
+        
+      - type: "email"
+        smtp_server: "smtp.gmail.com"
+        recipients: ["admin@example.com"]
+
+# Security Configuration
+security:
+  # TLS/SSL configuration
+  tls:
+    enabled: true
+    cert_manager: true
+    cluster_issuer: "letsencrypt-prod"
+    
+  # Network policies
+  network_policies:
+    enabled: true
+    default_deny: true
+    
+    allowed_ingress:
+      - from: "ingress-controller"
+        ports: [7860]
+      - from: "monitoring"
+        ports: [9090]
+        
+  # Pod security
+  pod_security:
+    security_context:
+      run_as_non_root: true
+      run_as_user: 1000
+      fs_group: 1000
+      
+    security_policies:
+      - name: "restricted"
+        privileged: false
+        allow_privilege_escalation: false
+        
+  # Secrets management
+  secrets:
+    encryption_at_rest: true
+    secret_rotation: true
+    
+    external_secrets:
+      enabled: true
+      provider: "aws_secrets_manager"  # aws_secrets_manager, azure_key_vault, gcp_secret_manager
+      
+# Backup and Disaster Recovery
+backup:
+  # Data backup
+  data_backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention_days: 30
+    storage_location: "s3://biovit3r-backups"
+    
+  # Database backup
+  database_backup:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention_days: 7
+    compression: true
+    
+  # Disaster recovery
+  disaster_recovery:
+    rpo: "1h"  # Recovery Point Objective
+    rto: "4h"  # Recovery Time Objective
+    backup_regions: ["us-west-2", "us-east-1"]
+    
+# Performance Optimization
+performance:
+  # Caching strategies
+  caching:
+    redis_cluster: true
+    cache_warming: true
+    cdn_enabled: true
+    
+  # Resource optimization
+  resources:
+    cpu_optimization: true
+    memory_optimization: true
+    gpu_optimization: true
+    
+  # Database optimization
+  database:
+    connection_pooling: true
+    read_replicas: 2
+    query_optimization: true
+    
+# Deployment Automation
+automation:
+  # CI/CD pipeline
+  cicd:
+    enabled: true
+    platform: "github_actions"  # github_actions, gitlab_ci, jenkins
+    
+    # Build configuration
+    build:
+      dockerfile: "Dockerfile"
+      build_args:
+        PYTHON_VERSION: "3.9"
+        CUDA_VERSION: "11.8"
+        
+    # Testing stages
+    testing:
+      unit_tests: true
+      integration_tests: true
+      security_scanning: true
+      
+    # Deployment stages
+    deployment:
+      staging_first: true
+      approval_required: true
+      rollback_enabled: true
+      
+  # Infrastructure as Code
+  iac:
+    enabled: true
+    tool: "terraform"  # terraform, cloudformation, arm
+    
+    modules:
+      - name: "networking"
+        source: "modules/networking"
+      - name: "compute"
+        source: "modules/compute"
+      - name: "storage"
+        source: "modules/storage"
